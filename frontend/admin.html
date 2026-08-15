@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaxAsk Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .confidence-high { color: #16a34a; }
+        .confidence-medium { color: #ca8a04; }
+        .confidence-low { color: #dc2626; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .link-ok { color: #16a34a; }
+        .link-fail { color: #dc2626; }
+        .link-checking { color: #ca8a04; }
+        .modal-backdrop { background: rgba(0,0,0,0.4); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">VaxAsk Admin</h1>
+                    <p class="text-sm text-gray-500">Makale ve PDF yonetimi</p>
+                </div>
+            </div>
+            <a href="/" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Siteye don
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <p class="text-sm text-gray-500 mb-1">Toplam Makale</p>
+                <p id="stat-articles" class="text-3xl font-bold text-blue-600">-</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <p class="text-sm text-gray-500 mb-1">Toplam Chunk</p>
+                <p id="stat-chunks" class="text-3xl font-bold text-emerald-600">-</p>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Yeni Makale Yukle</h2>
+
+            <!-- Step 1: File Select -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">PDF Dosyasi Sec</label>
+                <div class="flex items-center gap-3">
+                    <input type="file" id="pdf-file" accept=".pdf"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
+                    <button onclick="extractMetadata()" id="btn-extract"
+                            class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Metadata Cikar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Metadata Form -->
+            <div id="metadata-form" class="hidden fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-md font-medium text-gray-700">Metadata Onizleme</h3>
+                    <span id="confidence-badge" class="text-sm font-medium px-3 py-1 rounded-full"></span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1">Baslik</label>
+                        <input type="text" id="meta-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Yazarlar</label>
+                        <input type="text" id="meta-authors" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Dergi</label>
+                        <input type="text" id="meta-journal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Yil</label>
+                        <input type="number" id="meta-year" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Source ID</label>
+                        <input type="text" id="meta-sourceid" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <!-- DOI with live link -->
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">DOI</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="meta-doi" oninput="updateDoiLink()" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                            <a id="doi-link" href="#" target="_blank" rel="noopener" class="hidden items-center gap-1 px-2 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-xs font-medium whitespace-nowrap">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                DOI Ac
+                            </a>
+                        </div>
+                        <p id="doi-url-preview" class="text-xs text-gray-400 mt-1 truncate"></p>
+                    </div>
+                    <!-- PubMed with live link -->
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">PubMed ID</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="meta-pubmed" oninput="updatePubmedLink()" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                            <a id="pubmed-link" href="#" target="_blank" rel="noopener" class="hidden items-center gap-1 px-2 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-xs font-medium whitespace-nowrap">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                PubMed Ac
+                            </a>
+                        </div>
+                        <p id="pubmed-url-preview" class="text-xs text-gray-400 mt-1 truncate"></p>
+                    </div>
+                </div>
+
+                <!-- Yeni sistem alanları: kategori / çapa / doğrulanmış künye -->
+                <div class="grid grid-cols-2 gap-4 mb-4 border-t border-gray-100 pt-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Kategori <span class="text-red-500">*</span></label>
+                        <select id="meta-kategori" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Çapa (öncelikli kaynak)</label>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" id="meta-anchor" class="w-4 h-4"/> Çapa</label>
+                            <input type="number" id="meta-anchor-rank" placeholder="rank 1/2" min="0" max="2" class="w-28 px-2 py-2 border border-gray-300 rounded-lg text-sm"/>
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1">Atıf künyesi (doğrulanmış referans metni)</label>
+                        <textarea id="meta-citation" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Yazarlar. Başlık. Dergi. Yıl. — boş bırakılırsa kaynak DOĞRULANMAMIŞ sayılır ve atıf olarak gösterilmez"></textarea>
+                    </div>
+                </div>
+
+                <button onclick="ingestPdf()" id="btn-ingest"
+                        class="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-sm disabled:opacity-50">
+                    Onayla ve Sisteme Ekle
+                </button>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="upload-status" class="hidden mt-4 p-3 rounded-lg text-sm"></div>
+        </div>
+
+        <!-- Articles List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Mevcut Makaleler</h2>
+            <div id="articles-list" class="overflow-x-auto">
+                <p class="text-gray-400 text-sm">Yukleniyor...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-5 border-b border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800">Makale Duzenle</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="edit-old-source-id"/>
+                <input type="hidden" id="edit-filename"/>
+                <div class="grid grid-cols-2 gap-4 mb-5">
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1">Baslik</label>
+                        <input type="text" id="edit-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Yazarlar</label>
+                        <input type="text" id="edit-authors" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Dergi</label>
+                        <input type="text" id="edit-journal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Yil</label>
+                        <input type="number" id="edit-year" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Source ID</label>
+                        <input type="text" id="edit-sourceid" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                    </div>
+                    <!-- DOI with live link -->
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">DOI</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="edit-doi" oninput="updateEditDoiLink()" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                            <a id="edit-doi-link" href="#" target="_blank" rel="noopener" class="hidden items-center gap-1 px-2 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-xs font-medium whitespace-nowrap">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                DOI Ac
+                            </a>
+                        </div>
+                        <p id="edit-doi-url-preview" class="text-xs text-gray-400 mt-1 truncate"></p>
+                    </div>
+                    <!-- PubMed with live link -->
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">PubMed ID</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="edit-pubmed" oninput="updateEditPubmedLink()" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"/>
+                            <a id="edit-pubmed-link" href="#" target="_blank" rel="noopener" class="hidden items-center gap-1 px-2 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-xs font-medium whitespace-nowrap">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                PubMed Ac
+                            </a>
+                        </div>
+                        <p id="edit-pubmed-url-preview" class="text-xs text-gray-400 mt-1 truncate"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-5 border-t border-gray-100 pt-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Kategori</label>
+                        <select id="edit-kategori" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Çapa (öncelikli kaynak)</label>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" id="edit-anchor" class="w-4 h-4"/> Çapa</label>
+                            <input type="number" id="edit-anchor-rank" placeholder="rank 1/2" min="0" max="2" class="w-28 px-2 py-2 border border-gray-300 rounded-lg text-sm"/>
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1">Atıf künyesi (doğrulanmış referans metni)</label>
+                        <textarea id="edit-citation" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
+                        <label class="flex items-center gap-1.5 text-sm text-gray-600 mt-1"><input type="checkbox" id="edit-dogrulandi" class="w-4 h-4"/> Künye doğrulanmış (atıf olarak gösterilsin)</label>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="saveEdit()" id="btn-save-edit"
+                            class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm disabled:opacity-50">
+                        Kaydet
+                    </button>
+                    <button onclick="closeEditModal()"
+                            class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm">
+                        Iptal
+                    </button>
+                    <span id="edit-status" class="text-sm ml-2"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // Yeni sistem kategorileri (0–12)
+        const KATS = [
+            [0,'0 · Genel / kesişen'],[1,'1 · Genel güvenlik'],[2,'2 · Otizm/nörogelişim'],
+            [3,'3 · Aşı içeriği'],[4,'4 · İmmün yük'],[5,'5 · Gebelik/infertilite'],
+            [6,'6 · Doğal bağışıklık'],[7,'7 · Güvensizlik'],[8,'8 · Dini/etik'],
+            [9,'9 · Sosyal/norm'],[10,'10 · Takvim/catch-up'],[11,'11 · Önceki reaksiyon'],[12,'12 · Kararsızlık']
+        ];
+        const KAT_LABEL = Object.fromEntries(KATS);
+        function fillKatOptions(){
+            const opts = KATS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+            const m=document.getElementById('meta-kategori'), e=document.getElementById('edit-kategori');
+            if(m) m.innerHTML=opts; if(e) e.innerHTML=opts;
+        }
+
+        // --- DOI / PubMed Link Helpers ---
+
+        function buildDoiUrl(doi) {
+            if (!doi) return null;
+            doi = doi.trim();
+            if (doi.startsWith('http')) return doi;
+            return `https://doi.org/${doi}`;
+        }
+
+        function buildPubmedUrl(pmid) {
+            if (!pmid) return null;
+            pmid = pmid.trim();
+            if (pmid.startsWith('http')) return pmid;
+            return `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+        }
+
+        // Metadata preview: DOI link
+        function updateDoiLink() {
+            const doi = document.getElementById('meta-doi').value.trim();
+            const linkEl = document.getElementById('doi-link');
+            const previewEl = document.getElementById('doi-url-preview');
+            if (doi) {
+                const url = buildDoiUrl(doi);
+                linkEl.href = url;
+                linkEl.classList.remove('hidden');
+                linkEl.classList.add('inline-flex');
+                previewEl.textContent = url;
+            } else {
+                linkEl.classList.add('hidden');
+                linkEl.classList.remove('inline-flex');
+                previewEl.textContent = '';
+            }
+        }
+
+        // Metadata preview: PubMed link
+        function updatePubmedLink() {
+            const pmid = document.getElementById('meta-pubmed').value.trim();
+            const linkEl = document.getElementById('pubmed-link');
+            const previewEl = document.getElementById('pubmed-url-preview');
+            if (pmid) {
+                const url = buildPubmedUrl(pmid);
+                linkEl.href = url;
+                linkEl.classList.remove('hidden');
+                linkEl.classList.add('inline-flex');
+                previewEl.textContent = url;
+            } else {
+                linkEl.classList.add('hidden');
+                linkEl.classList.remove('inline-flex');
+                previewEl.textContent = '';
+            }
+        }
+
+        // Edit modal: DOI link
+        function updateEditDoiLink() {
+            const doi = document.getElementById('edit-doi').value.trim();
+            const linkEl = document.getElementById('edit-doi-link');
+            const previewEl = document.getElementById('edit-doi-url-preview');
+            if (doi) {
+                const url = buildDoiUrl(doi);
+                linkEl.href = url;
+                linkEl.classList.remove('hidden');
+                linkEl.classList.add('inline-flex');
+                previewEl.textContent = url;
+            } else {
+                linkEl.classList.add('hidden');
+                linkEl.classList.remove('inline-flex');
+                previewEl.textContent = '';
+            }
+        }
+
+        // Edit modal: PubMed link
+        function updateEditPubmedLink() {
+            const pmid = document.getElementById('edit-pubmed').value.trim();
+            const linkEl = document.getElementById('edit-pubmed-link');
+            const previewEl = document.getElementById('edit-pubmed-url-preview');
+            if (pmid) {
+                const url = buildPubmedUrl(pmid);
+                linkEl.href = url;
+                linkEl.classList.remove('hidden');
+                linkEl.classList.add('inline-flex');
+                previewEl.textContent = url;
+            } else {
+                linkEl.classList.add('hidden');
+                linkEl.classList.remove('inline-flex');
+                previewEl.textContent = '';
+            }
+        }
+
+        // --- PDF & Extract ---
+
+        document.getElementById('pdf-file').addEventListener('change', function() {
+            document.getElementById('btn-extract').disabled = !this.files.length;
+            document.getElementById('metadata-form').classList.add('hidden');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fillKatOptions();
+            loadStats();
+            loadArticles();
+        });
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/stats`);
+                const data = await res.json();
+                document.getElementById('stat-articles').textContent = data.total_articles;
+                document.getElementById('stat-chunks').textContent = data.total_chunks;
+            } catch (e) {
+                console.error('Stats yuklenemedi:', e);
+            }
+        }
+
+        async function extractMetadata() {
+            const fileInput = document.getElementById('pdf-file');
+            if (!fileInput.files.length) return;
+
+            const btn = document.getElementById('btn-extract');
+            btn.textContent = 'Cikartiliyor...';
+            btn.disabled = true;
+            showStatus('Metadata cikartiliyor... CrossRef ve PubMed sorgulanyor.', 'info');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/extract-metadata`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.status === 401) {
+                    showStatus('Yetkisiz erisim. Lutfen giris yapin.', 'error');
+                    return;
+                }
+
+                const data = await res.json();
+                const meta = data.suggested_metadata;
+
+                document.getElementById('meta-title').value = meta.title || '';
+                document.getElementById('meta-authors').value = meta.authors || '';
+                document.getElementById('meta-journal').value = meta.journal || '';
+                document.getElementById('meta-year').value = meta.year || '';
+                document.getElementById('meta-doi').value = meta.doi || '';
+                document.getElementById('meta-pubmed').value = meta.pubmed_id || '';
+                document.getElementById('meta-sourceid').value = meta.source_id || '';
+
+                // Live linkleri guncelle
+                updateDoiLink();
+                updatePubmedLink();
+
+                // Confidence badge
+                const badge = document.getElementById('confidence-badge');
+                const conf = data.confidence;
+                if (conf >= 0.8) {
+                    badge.textContent = `Guven: %${Math.round(conf * 100)}`;
+                    badge.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 confidence-high';
+                } else if (conf >= 0.5) {
+                    badge.textContent = `Guven: %${Math.round(conf * 100)}`;
+                    badge.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 confidence-medium';
+                } else {
+                    badge.textContent = `Guven: %${Math.round(conf * 100)}`;
+                    badge.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 confidence-low';
+                }
+
+                document.getElementById('metadata-form').classList.remove('hidden');
+                showStatus('Metadata basariyla cikarildi. Linkleri kontrol edip onaylayin.', 'success');
+
+            } catch (e) {
+                showStatus(`Hata: ${e.message}`, 'error');
+            } finally {
+                btn.textContent = 'Metadata Cikar';
+                btn.disabled = false;
+            }
+        }
+
+        async function ingestPdf() {
+            const fileInput = document.getElementById('pdf-file');
+            if (!fileInput.files.length) return;
+
+            const btn = document.getElementById('btn-ingest');
+            btn.textContent = 'Isleniyor...';
+            btn.disabled = true;
+            showStatus('PDF isleniyor ve ChromaDB\'ye kaydediliyor...', 'info');
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('title', document.getElementById('meta-title').value);
+            formData.append('authors', document.getElementById('meta-authors').value);
+            formData.append('journal', document.getElementById('meta-journal').value);
+            formData.append('year', document.getElementById('meta-year').value);
+            formData.append('doi', document.getElementById('meta-doi').value);
+            formData.append('pubmed_id', document.getElementById('meta-pubmed').value);
+            formData.append('source_id', document.getElementById('meta-sourceid').value);
+            formData.append('kategori_id', document.getElementById('meta-kategori').value || '0');
+            formData.append('is_anchor', document.getElementById('meta-anchor').checked ? 'true' : 'false');
+            formData.append('anchor_rank', document.getElementById('meta-anchor-rank').value || '0');
+            formData.append('citation_string', document.getElementById('meta-citation').value.trim());
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/ingest`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.status === 401) {
+                    showStatus('Yetkisiz erisim.', 'error');
+                    return;
+                }
+
+                const data = await res.json();
+                showStatus(
+                    `Basarili! ${data.chunks_added} chunk eklendi. Source ID: ${data.source_id}`,
+                    'success'
+                );
+
+                document.getElementById('pdf-file').value = '';
+                document.getElementById('metadata-form').classList.add('hidden');
+                document.getElementById('btn-extract').disabled = true;
+
+                loadStats();
+                loadArticles();
+
+            } catch (e) {
+                showStatus(`Hata: ${e.message}`, 'error');
+            } finally {
+                btn.textContent = 'Onayla ve Sisteme Ekle';
+                btn.disabled = false;
+            }
+        }
+
+        // --- Articles List ---
+
+        async function loadArticles() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/articles`);
+                if (res.status === 401) {
+                    document.getElementById('articles-list').innerHTML =
+                        '<p class="text-red-500 text-sm">Yetkisiz erisim. Sayfayi yenileyin ve giris yapin.</p>';
+                    return;
+                }
+
+                const data = await res.json();
+                const articles = data.articles;
+
+                if (!articles.length) {
+                    document.getElementById('articles-list').innerHTML =
+                        '<p class="text-gray-400 text-sm">Henuz makale yuklenmemis.</p>';
+                    return;
+                }
+
+                let html = `
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-gray-500 border-b">
+                                <th class="pb-2 pr-3">Baslik</th>
+                                <th class="pb-2 pr-3">Yazarlar</th>
+                                <th class="pb-2 pr-3">Yil</th>
+                                <th class="pb-2 pr-3">Kategori</th>
+                                <th class="pb-2 pr-3">Künye</th>
+                                <th class="pb-2 pr-3">Linkler</th>
+                                <th class="pb-2 pr-3 text-right">Islemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                for (const a of articles) {
+                    // Link butonlari
+                    let linkBtns = '';
+                    if (a.doi_url || a.doi) {
+                        const doiHref = a.doi_url || buildDoiUrl(a.doi);
+                        linkBtns += `<a href="${doiHref}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 font-medium mr-2">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>DOI</a>`;
+                    }
+                    if (a.pubmed_url || a.pubmed_id) {
+                        const pmHref = a.pubmed_url || buildPubmedUrl(a.pubmed_id);
+                        linkBtns += `<a href="${pmHref}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-xs text-emerald-600 hover:text-emerald-800 font-medium">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>PM</a>`;
+                    }
+                    if (!linkBtns) linkBtns = '<span class="text-gray-400 text-xs">-</span>';
+
+                    // JSON-safe article data for onclick
+                    const safeData = encodeURIComponent(JSON.stringify(a));
+
+                    html += `
+                        <tr class="border-b border-gray-50 hover:bg-gray-50">
+                            <td class="py-2.5 pr-3 max-w-[220px] truncate" title="${escapeAttr(a.title)}">${escapeHtml(a.title || '-')}</td>
+                            <td class="py-2.5 pr-3 text-gray-600 max-w-[150px] truncate">${escapeHtml(a.authors || '-')}</td>
+                            <td class="py-2.5 pr-3">${a.year || '-'}</td>
+                            <td class="py-2.5 pr-3 text-xs text-gray-700">${KAT_LABEL[a.kategori_id ?? 0] || (a.kategori_id ?? '-')}</td>
+                            <td class="py-2.5 pr-3 text-xs">${a.kunye_dogrulandi ? '<span class="text-emerald-600 font-semibold">✓</span>' : '<span class="text-gray-400">—</span>'}${a.is_anchor ? ' <span class="text-amber-600" title="çapa kaynak">⚓</span>' : ''}</td>
+                            <td class="py-2.5 pr-3">${linkBtns}</td>
+                            <td class="py-2.5 text-right whitespace-nowrap">
+                                <button onclick="openEditModal(decodeURIComponent('${safeData}'))"
+                                        class="text-blue-500 hover:text-blue-700 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 mr-1">
+                                    Duzenle
+                                </button>
+                                <button onclick="deleteArticle('${a.source_id}')"
+                                        class="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded hover:bg-red-50">
+                                    Sil
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                html += '</tbody></table>';
+                document.getElementById('articles-list').innerHTML = html;
+
+            } catch (e) {
+                document.getElementById('articles-list').innerHTML =
+                    `<p class="text-red-500 text-sm">Hata: ${e.message}</p>`;
+            }
+        }
+
+        // --- Edit Modal ---
+
+        function openEditModal(jsonStr) {
+            const a = JSON.parse(jsonStr);
+            document.getElementById('edit-old-source-id').value = a.source_id || '';
+            document.getElementById('edit-filename').value = a.filename || '';
+            document.getElementById('edit-title').value = a.title || '';
+            document.getElementById('edit-authors').value = a.authors || '';
+            document.getElementById('edit-journal').value = a.journal || '';
+            document.getElementById('edit-year').value = a.year || '';
+            document.getElementById('edit-sourceid').value = a.source_id || '';
+            document.getElementById('edit-doi').value = a.doi || '';
+            document.getElementById('edit-pubmed').value = a.pubmed_id || '';
+            document.getElementById('edit-kategori').value = (a.kategori_id ?? 0);
+            document.getElementById('edit-anchor').checked = !!a.is_anchor;
+            document.getElementById('edit-anchor-rank').value = a.anchor_rank || 0;
+            document.getElementById('edit-citation').value = a.citation_string || '';
+            document.getElementById('edit-dogrulandi').checked = !!a.kunye_dogrulandi;
+            document.getElementById('edit-status').textContent = '';
+
+            updateEditDoiLink();
+            updateEditPubmedLink();
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        // Esc ile kapat
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeEditModal();
+        });
+
+        // Backdrop'a tikla kapat
+        document.getElementById('edit-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('edit-modal')) closeEditModal();
+        });
+
+        async function saveEdit() {
+            const oldSourceId = document.getElementById('edit-old-source-id').value;
+            const btn = document.getElementById('btn-save-edit');
+            const statusEl = document.getElementById('edit-status');
+
+            btn.textContent = 'Kaydediliyor...';
+            btn.disabled = true;
+            statusEl.textContent = '';
+
+            const doi = document.getElementById('edit-doi').value.trim();
+            const pubmedId = document.getElementById('edit-pubmed').value.trim();
+
+            const payload = {
+                source_id: document.getElementById('edit-sourceid').value.trim(),
+                title: document.getElementById('edit-title').value.trim(),
+                authors: document.getElementById('edit-authors').value.trim(),
+                journal: document.getElementById('edit-journal').value.trim(),
+                year: parseInt(document.getElementById('edit-year').value) || 0,
+                doi: doi || null,
+                doi_url: doi ? buildDoiUrl(doi) : null,
+                pubmed_id: pubmedId || null,
+                pubmed_url: pubmedId ? buildPubmedUrl(pubmedId) : null,
+                filename: document.getElementById('edit-filename').value,
+                kategori_id: parseInt(document.getElementById('edit-kategori').value) || 0,
+                is_anchor: document.getElementById('edit-anchor').checked,
+                anchor_rank: parseInt(document.getElementById('edit-anchor-rank').value) || 0,
+                citation_string: document.getElementById('edit-citation').value.trim() || null,
+                kunye_dogrulandi: document.getElementById('edit-dogrulandi').checked,
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/articles/${oldSourceId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (res.status === 401) {
+                    statusEl.textContent = 'Yetkisiz erisim.';
+                    statusEl.className = 'text-sm ml-2 text-red-600';
+                    return;
+                }
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Guncelleme basarisiz');
+                }
+
+                const data = await res.json();
+                statusEl.textContent = `Guncellendi! (${data.chunks_updated} chunk)`;
+                statusEl.className = 'text-sm ml-2 text-green-600';
+
+                loadStats();
+                loadArticles();
+
+                setTimeout(() => closeEditModal(), 1200);
+
+            } catch (e) {
+                statusEl.textContent = `Hata: ${e.message}`;
+                statusEl.className = 'text-sm ml-2 text-red-600';
+            } finally {
+                btn.textContent = 'Kaydet';
+                btn.disabled = false;
+            }
+        }
+
+        // --- Delete ---
+
+        async function deleteArticle(sourceId) {
+            if (!confirm(`"${sourceId}" makalesini silmek istediginize emin misiniz?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/articles/${sourceId}`, {
+                    method: 'DELETE',
+                });
+                if (res.ok) {
+                    showStatus('Makale silindi.', 'success');
+                    loadStats();
+                    loadArticles();
+                } else {
+                    showStatus('Silme basarisiz.', 'error');
+                }
+            } catch (e) {
+                showStatus(`Hata: ${e.message}`, 'error');
+            }
+        }
+
+        // --- Helpers ---
+
+        function showStatus(message, type) {
+            const el = document.getElementById('upload-status');
+            el.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-700', 'bg-blue-50', 'text-blue-700');
+
+            if (type === 'success') {
+                el.classList.add('bg-green-50', 'text-green-700');
+            } else if (type === 'error') {
+                el.classList.add('bg-red-50', 'text-red-700');
+            } else {
+                el.classList.add('bg-blue-50', 'text-blue-700');
+            }
+
+            el.textContent = message;
+            el.classList.remove('hidden');
+
+            if (type !== 'info') {
+                setTimeout(() => el.classList.add('hidden'), 5000);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function escapeAttr(text) {
+            return (text || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+    </script>
+
+</body>
+</html>

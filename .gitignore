@@ -1,0 +1,27 @@
+# Secrets / config
+.env
+
+# Data (not distributed)
+chroma_db/
+pdfs/
+backend/chroma_db/
+backend/pdfs/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.tmp
+*.tmp.*

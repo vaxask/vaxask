@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>VaxAsk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#F3EADD; --backdrop:#E6D8C0; --surface:#FFFCF6; --surface-2:#F4ECDB; --ink:#43303A; --muted:#8E7468;
+    --primary:#AE5C49; --primary-deep:#8C4232; --accent:#E5A06B; --line:#E4D5C0;
+    --user-bg:#ECDDC8; --user-ink:#54413A; --bubble-r:11px;
+    --safe-bg:#FCF2E1; --safe-bg2:#F7E7CC; --safe-line:#ECCF9B; --safe-ink:#8A5B22; --safe-ico:#C2853A;
+    --display:'Newsreader', Georgia, serif; --body:'Spectral', Georgia, serif; --ui:'Hanken Grotesk', system-ui, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{
+    font-family:var(--body); color:var(--ink); -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(1100px 700px at 50% -8%, color-mix(in oklab, var(--accent) 14%, var(--backdrop)), transparent 60%),
+      var(--backdrop);
+    min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+  a{ color:inherit; }
+
+  /* ===== uygulama çerçevesi ===== */
+  .app{
+    width:min(680px, 96vw); max-width:100%; height:min(920px, 96vh); background:var(--bg);
+    border-radius:24px; overflow:hidden; position:relative; display:flex; flex-direction:column;
+    box-shadow:0 40px 90px -36px rgba(60,30,15,.55), 0 0 0 1px rgba(120,80,40,.08);
+  }
+  @media (max-width:480px){
+    body{ padding:0; }
+    .app{ width:100%; height:100dvh; border-radius:0; }
+  }
+
+  /* ===== üst bar ===== */
+  .top{ display:flex; align-items:center; gap:8px; padding:15px 18px; border-bottom:1px solid var(--line);
+    background:color-mix(in oklab, var(--bg) 85%, #fff); flex:0 0 auto; z-index:3; }
+  .brand{ display:flex; align-items:center; gap:9px; font-family:var(--display); font-weight:500; font-size:18px; letter-spacing:.2px; cursor:pointer; padding:2px 4px; margin-left:-4px; border-radius:8px; }
+  .brand:hover{ background:var(--surface-2); }
+  .brand .m{ color:var(--primary); display:flex; }
+  .top-sp{ flex:1; }
+  .anon{ display:inline-flex; align-items:center; gap:5px; font-family:var(--ui); font-size:11.5px; color:var(--muted);
+    background:var(--surface-2); border:1px solid var(--line); padding:5px 10px; border-radius:999px; }
+  .restart{ font-family:var(--ui); font-size:12px; color:var(--muted); padding:6px 8px; border-radius:8px; display:none; align-items:center; gap:5px; }
+  .restart:hover{ background:var(--surface-2); color:var(--primary-deep); }
+  .app[data-view="chat"] .restart{ display:inline-flex; }
+  .app[data-view="chat"] .anon{ display:none; }
+
+  /* dil seçici */
+  .lang{ display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; overflow:hidden; background:var(--surface-2); }
+  .lang button{ font-family:var(--ui); font-size:11px; font-weight:700; letter-spacing:.3px; color:var(--muted); padding:5px 9px; line-height:1; }
+  .lang button.on{ background:var(--primary); color:#fff; }
+  .lang button:not(.on):hover{ color:var(--primary-deep); }
+
+  /* ===== kaydırma alanı ===== */
+  .scroll{ flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
+  .scroll::-webkit-scrollbar{ display:none; }
+
+  /* ===== karşılama ===== */
+  .welcome{ padding:26px 22px 8px; min-height:100%; display:flex; flex-direction:column; }
+  .hero-emblem{ width:60px; height:60px; border-radius:16px; display:flex; align-items:center; justify-content:center; color:var(--primary);
+    background:radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent) 60%, #fff), color-mix(in oklab, var(--accent) 24%, #fff));
+    box-shadow:0 10px 24px -12px color-mix(in oklab, var(--primary) 55%, transparent); margin-bottom:20px; animation:float 5.5s ease-in-out infinite; }
+  h1.head{ font-family:var(--display); font-weight:500; font-size:35px; line-height:1.06; letter-spacing:-.4px; margin:0 0 14px; color:var(--ink); }
+  h1.head span{ display:block; }
+  .sub{ margin:0; font-size:16.5px; line-height:1.55; color:color-mix(in oklab, var(--ink) 72%, #fff); max-width:33ch; }
+  .trust{ display:flex; flex-wrap:wrap; gap:7px; margin-top:18px; }
+  .chip{ font-family:var(--ui); font-size:11.5px; font-weight:500; color:var(--primary-deep);
+    background:color-mix(in oklab, var(--accent) 15%, var(--surface)); border:1px solid color-mix(in oklab, var(--accent) 38%, var(--line));
+    padding:5px 11px; border-radius:5px; }
+
+  .ex{ margin-top:auto; padding-top:26px; }
+  .ex-title{ font-family:var(--ui); font-size:11px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin-bottom:11px; }
+  .ex-list{ display:flex; flex-direction:column; gap:9px; }
+  .ex-item{ display:flex; align-items:center; gap:11px; text-align:left; width:100%; background:var(--surface);
+    border:1px solid color-mix(in oklab, var(--primary) 15%, var(--line)); border-radius:9px; padding:13px 14px; font-size:15px; color:var(--ink);
+    box-shadow:0 6px 16px -15px rgba(40,25,10,.6); transition:transform .16s, box-shadow .16s, border-color .16s; }
+  .ex-item .s{ color:var(--primary); flex:0 0 auto; display:flex; }
+  .ex-item .arr{ margin-left:auto; color:var(--muted); opacity:0; transform:translateX(-4px); transition:opacity .16s, transform .16s; display:flex; }
+  .ex-item:hover{ transform:translateY(-1px); box-shadow:0 12px 24px -16px rgba(40,25,10,.7); border-color:color-mix(in oklab, var(--primary) 42%, var(--line)); }
+  .ex-item:hover .arr{ opacity:1; transform:translateX(0); }
+
+  /* ===== sohbet ===== */
+  .thread{ padding:20px 16px 8px; display:flex; flex-direction:column; gap:18px; }
+  .msg{ display:flex; }
+  .msg.fresh{ animation:rise .45s cubic-bezier(.2,.7,.3,1); }
+  .msg.user{ justify-content:flex-end; }
+  .msg.user .bubble{ background:var(--user-bg); color:var(--user-ink); border-radius:var(--bubble-r) var(--bubble-r) 4px var(--bubble-r);
+    padding:12px 15px; max-width:84%; font-size:15.5px; line-height:1.5; }
+  .msg.bot{ gap:9px; }
+  .av{ flex:0 0 auto; width:30px; height:30px; border-radius:9px; margin-top:2px; display:flex; align-items:center; justify-content:center;
+    color:var(--primary); background:color-mix(in oklab, var(--accent) 24%, var(--surface)); border:1px solid color-mix(in oklab, var(--accent) 30%, var(--line)); }
+  .bot .bubble{ background:var(--surface); border:1px solid var(--line); border-radius:4px 12px 12px 12px; padding:15px 16px; max-width:90%;
+    box-shadow:0 16px 36px -28px rgba(40,25,10,.6); }
+
+  .empathy{ margin:0 0 11px; font-family:var(--display); font-style:italic; font-size:17px; line-height:1.42; color:var(--primary-deep); }
+  .para{ margin:0 0 10px; font-size:15.5px; line-height:1.62; color:color-mix(in oklab, var(--ink) 92%, #fff); }
+  .para:last-of-type{ margin-bottom:0; }
+  .mark{ display:inline-flex; align-items:center; justify-content:center; min-width:15px; height:15px; padding:0 3px; margin-left:1px;
+    font-family:var(--ui); font-size:10px; font-weight:700; line-height:1; vertical-align:super; border-radius:5px;
+    color:var(--primary-deep); background:color-mix(in oklab, var(--accent) 26%, var(--surface)); }
+
+  .cites{ margin-top:14px; padding-top:13px; border-top:1px dashed color-mix(in oklab, var(--line) 65%, var(--muted)); }
+  .cites-h{ display:flex; align-items:center; gap:7px; font-family:var(--ui); font-size:12px; font-weight:600; color:#2C6E45; margin-bottom:10px; }
+  .cite{ display:flex; gap:11px; text-decoration:none; color:inherit; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:7px; padding:12px 13px; margin-bottom:9px; transition:border-color .16s, transform .16s, box-shadow .16s; }
+  .cite:last-child{ margin-bottom:0; }
+  .cite:hover{ border-color:color-mix(in oklab, var(--primary) 45%, var(--line)); transform:translateY(-1px); box-shadow:0 12px 24px -18px rgba(0,0,0,.5); }
+  .cite-n{ flex:0 0 auto; width:22px; height:22px; border-radius:6px; background:var(--primary); color:#fff; font-family:var(--ui);
+    font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .cite-body{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .badge{ align-self:flex-start; display:inline-flex; align-items:center; gap:5px; font-family:var(--ui); font-size:11px; font-weight:700; white-space:nowrap;
+    color:#2C6E45; background:#E6F2EA; border:1px solid #BFE0CB; padding:3px 9px 3px 7px; border-radius:999px; }
+  .badge.unv{ color:#8a6d2a; background:#F6EEDA; border-color:#E4D2A2; }
+  .cite-text{ font-family:var(--ui); font-size:12px; line-height:1.5; color:color-mix(in oklab, var(--ink) 78%, #fff); }
+  .cite-link{ display:inline-flex; align-items:center; gap:4px; font-family:var(--ui); font-size:11.5px; font-weight:600; white-space:nowrap; color:var(--primary); }
+
+  /* güvenlik kartı */
+  .safecard{ margin-top:2px; background:var(--safe-bg); border:1px solid var(--safe-line); border-radius:9px; padding:15px; }
+  .safe-head{ display:flex; align-items:center; gap:11px; font-family:var(--display); font-weight:600; font-size:17px; color:var(--safe-ink); line-height:1.25; }
+  .safe-ico{ flex:0 0 auto; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#fff; background:var(--safe-ico); }
+  .safe-body{ margin:12px 0 0; font-size:14.5px; line-height:1.6; color:color-mix(in oklab, var(--safe-ink) 72%, var(--ink)); }
+  .safe-step{ display:flex; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid color-mix(in oklab, var(--safe-line) 70%, transparent); font-size:14.5px; line-height:1.55; }
+  .safe-step strong{ color:var(--safe-ink); }
+  .step-dot{ flex:0 0 auto; width:22px; height:22px; border-radius:50%; background:var(--safe-ico); color:#fff; font-family:var(--ui); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .safe-urgent{ margin-top:12px; background:var(--safe-bg2); border-radius:6px; padding:10px 12px; font-size:13.5px; line-height:1.5; color:var(--safe-ink); }
+  .soft{ color:var(--muted); margin-top:12px; font-size:14px; }
+
+  /* yazıyor göstergesi */
+  .typing{ display:inline-flex; align-items:center; gap:5px; padding:14px 16px; background:var(--surface); border:1px solid var(--line);
+    border-radius:4px 12px 12px 12px; box-shadow:0 16px 36px -28px rgba(40,25,10,.6); }
+  .dot{ width:7px; height:7px; border-radius:50%; background:color-mix(in oklab, var(--primary) 55%, var(--muted)); animation:blink 1.3s ease-in-out infinite; }
+  .dot:nth-child(2){ animation-delay:.18s; } .dot:nth-child(3){ animation-delay:.36s; }
+
+  /* ===== composer ===== */
+  .composer{ flex:0 0 auto; padding:12px 14px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--line);
+    background:color-mix(in oklab, var(--bg) 88%, #fff); display:flex; align-items:flex-end; gap:9px; }
+  .field{ flex:1; display:flex; align-items:center; background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:6px 6px 6px 16px; transition:border-color .16s, box-shadow .16s; }
+  .field:focus-within{ border-color:color-mix(in oklab, var(--primary) 50%, var(--line)); box-shadow:0 0 0 4px color-mix(in oklab, var(--primary) 12%, transparent); }
+  .field textarea{ flex:1; border:none; outline:none; resize:none; background:none; font-family:var(--body); font-size:15.5px; color:var(--ink);
+    line-height:1.4; max-height:96px; padding:8px 0; }
+  .field textarea::placeholder{ color:color-mix(in oklab, var(--muted) 85%, transparent); }
+  .send{ flex:0 0 auto; width:42px; height:42px; border-radius:11px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 18px -8px var(--primary); transition:transform .15s, opacity .15s; }
+  .send:hover{ transform:scale(1.05); } .send:disabled{ opacity:.4; cursor:default; transform:none; }
+  /* sabit üst tagline (header'ın hemen altında, her ekranda görünür) */
+  .tagline{ flex:0 0 auto; text-align:center; padding:8px 16px; border-bottom:1px solid var(--line);
+    background:color-mix(in oklab, var(--bg) 85%, #fff); font-family:var(--display); font-weight:700;
+    font-size:13.5px; line-height:1.3; color:color-mix(in oklab, var(--ink) 80%, #fff); }
+  /* sabit alt tıbbi feragat (her ekranda görünür) */
+  .disclaimer{ flex:0 0 auto; text-align:center;
+    padding:8px 16px calc(8px + env(safe-area-inset-bottom)); border-top:1px solid var(--line);
+    background:color-mix(in oklab, var(--bg) 88%, #fff); font-family:var(--ui); font-size:10.5px;
+    line-height:1.4; color:var(--muted); }
+
+  @keyframes float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+  @keyframes blink{ 0%,100%{ opacity:.25; transform:translateY(0);} 50%{ opacity:1; transform:translateY(-3px);} }
+  @media (prefers-reduced-motion: reduce){ .hero-emblem,.msg.fresh{ animation:none; } }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-view="welcome">
+  <div class="top">
+    <button class="brand" id="brand" type="button" title="Başa dön"><span class="m" id="brandMark"></span>VaxAsk</button>
+    <span class="top-sp"></span>
+    <span class="lang" id="langsel">
+      <button type="button" data-l="tr">TR</button><button type="button" data-l="en">EN</button>
+    </span>
+    <span class="anon" id="anon"></span>
+    <button class="restart" id="restart" type="button"></button>
+  </div>
+  <div class="tagline" id="tagline"></div>
+  <div class="scroll" id="scroll"></div>
+  <div class="composer">
+    <div class="field">
+      <textarea id="ta" rows="1" placeholder="Buraya yazabilirsin…"></textarea>
+      <button class="send" id="send" type="button" aria-label="gönder"></button>
+    </div>
+  </div>
+  <div class="disclaimer" id="disclaimer"></div>
+</div>
+
+<script>
+/* VaxAsk frontend — talks to /api/chat; citations are printed from the API response. */
+
+const API = ''; // aynı origin
+
+/* ===== i18n (TR + EN) ===== */
+const T = {
+  tr: {
+    anon: 'Anonim · kaydınızı tutmayız',
+    restart: 'Yeniden başla',
+    head: ['Soru sormak,', 'en iyi başlangıç.'],
+    sub: 'Aşıyla ilgili bir tereddüdünüz olabilir. Bu tereddütü ortadan kaldırmak için araştırıyor olmanız doğal. Burada yargılanmadan sorabilir, her yanıtın dayandığı bilimsel kaynağı kendi gözünüzle görebilirsiniz. Karar sonunda sizin.',
+    chips: ['Anonim', 'Kaynaklı', 'Yargısız'],
+    exTitle: 'Başlamak için',
+    examples: [
+      'Aşılardaki alüminyum zararlı mı?',
+      'Aynı anda birçok aşı güvenli mi?',
+      'mRNA aşısı DNA’mı değiştirir mi?',
+      'Aşı sonrası ateş normal mi?',
+      'Önceki aşıdan sonra alerjim oldu, yine yaptırsam mı?',
+    ],
+    placeholder: 'Buraya yazabilirsiniz…',
+    foot: 'Ne ikna, ne baskı — sadece dürüst bilgi.',
+    footNote: 'Yanıtlar bilimsel kaynaklara dayanır; hekiminizin tıbbi tavsiyesinin yerine geçmez. Bağımsızdır; hiçbir ilaç ya da aşı firmasından, ticari kuruluştan finansman veya destek almaz, hiçbir çıkar çatışması yoktur.',
+    citesVerified: (n) => `Bu yanıt ${n} doğrulanmış kaynağa dayanıyor`,
+    cites: (n) => `Bu yanıt ${n} kaynağa dayanıyor`,
+    badgeVerified: 'Doğrulanmış kaynak',
+    badgeAuto: 'Otomatik künye',
+    openPubmed: 'PubMed’de aç',
+    openDoi: 'DOI’de aç',
+    openSource: 'Kaynağa git',
+    error: 'Şu an yanıt veremedim — bağlantıda bir sorun oldu. Birazdan tekrar dener misiniz?',
+  },
+  en: {
+    anon: 'Anonymous · we keep no records',
+    restart: 'Restart',
+    head: ['Asking is', 'the best place to start.'],
+    sub: 'You may have doubts about vaccines, and it’s natural to look into them to put those doubts to rest. Here you can ask without being judged, and see for yourself the scientific source behind every answer. In the end, the decision is yours.',
+    chips: ['Anonymous', 'Sourced', 'Non-judgmental'],
+    exTitle: 'To get started',
+    examples: [
+      'Is the aluminum in vaccines harmful?',
+      'Is it safe to get many vaccines at once?',
+      'Can an mRNA vaccine change my DNA?',
+      'Is fever after a vaccine normal?',
+      'I had an allergic reaction after a previous vaccine — should I get it again?',
+    ],
+    placeholder: 'You can type here…',
+    foot: 'No persuasion, no pressure — just honest information.',
+    footNote: 'Answers are based on scientific sources; they do not replace your doctor’s medical advice. Independent; receives no funding or support from any pharmaceutical or vaccine company or commercial entity, and has no conflict of interest.',
+    citesVerified: (n) => `This answer draws on ${n} verified source${n > 1 ? 's' : ''}`,
+    cites: (n) => `This answer draws on ${n} source${n > 1 ? 's' : ''}`,
+    badgeVerified: 'Verified source',
+    badgeAuto: 'Auto citation',
+    openPubmed: 'Open in PubMed',
+    openDoi: 'Open DOI',
+    openSource: 'Go to source',
+    error: 'I couldn’t respond just now — there was a connection problem. Could you try again shortly?',
+  },
+};
+
+/* Geo-default: Türkiye'den gelen → TR, dışından → EN (cihaz saat dilimine göre) */
+function detectLang() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (tz === 'Europe/Istanbul') return 'tr';
+    if (tz) return 'en';
+    // saat dilimi yoksa tarayıcı diline düş
+    return (navigator.language || '').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  } catch (e) { return 'tr'; }
+}
+let lang = detectLang();
+const t = (k) => T[lang][k];
+
+/* icons */
+function ico(d, s = 18, w = 1.6, f = 'none') {
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${f}" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+}
+const IC = {
+  lock:    (s=18)=>ico('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', s),
+  check:   (s=18,w=1.6)=>ico('<path d="M5 12.5l4 4 10-10"/>', s, w),
+  upright: (s=18)=>ico('<path d="M7 17 17 7"/><path d="M8 7h9v9"/>', s),
+  send:    (s=18)=>ico('<path d="M4 12h15M13 6l6 6-6 6"/>', s),
+  refresh: (s=18)=>ico('<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 20v-4h4"/>', s),
+  shield:  (s=18)=>ico('<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M12 9.5c.9-1.6 3.4-1.2 3.4.8 0 1.6-2 2.9-3.4 4-1.4-1.1-3.4-2.4-3.4-4 0-2 2.5-2.4 3.4-.8z" fill="currentColor" stroke="none"/>', s),
+  spark:   (s=18)=>ico('<path d="M12 4l1.6 5.4L19 11l-5.4 1.6L12 18l-1.6-5.4L5 11l5.4-1.6z"/>', s),
+};
+function mark(s = 26) {
+  return `<svg width="${s}" height="${s}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 13c0-4 3.6-7 9-7s9 3 9 7-3.6 7-9 7c-1.1 0-2.2-.1-3.1-.4L6 23l1-3.4C5.8 18.3 5 15.8 5 13z"/>
+    <path d="M14 11.4c.9-1.5 3.2-1 3.2.8 0 1.5-1.9 2.7-3.2 3.6-1.3-.9-3.2-2.1-3.2-3.6 0-1.8 2.3-2.3 3.2-.8z" fill="currentColor" stroke="none"/>
+  </svg>`;
+}
+
+/* ---- yardımcılar ---- */
+function esc(t) {
+  const d = document.createElement('div');
+  d.textContent = t == null ? '' : String(t);
+  return d.innerHTML;
+}
+/* [n] işaretlerini stilli simgeye çevir (metin güvenli kaçışla) */
+function renderBody(text) {
+  return esc(text).replace(/\[(\d+)\]/g, '<sup class="mark">$1</sup>');
+}
+/* API yanıtını empati + paragraflara böl */
+function splitParagraphs(answer) {
+  const parts = (answer || '').split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return { empathy: '', body: [] };
+  if (parts.length === 1) return { empathy: '', body: parts };
+  return { empathy: parts[0], body: parts.slice(1) };
+}
+/* tek kaynağı kart verisine dönüştür */
+function toCite(s, n) {
+  const verified = !!s.kunye_dogrulandi && !!s.citation_string;
+  const text = verified
+    ? s.citation_string
+    : [s.authors, s.year].filter(Boolean).join(', ') +
+      (s.title ? ' — ' + s.title : '') + (s.journal ? '. ' + s.journal : '');
+  const url = s.pubmed_url || s.doi_url || '';
+  return { n, verified, text, url };
+}
+
+/* ---- DOM kurulum ---- */
+const app = document.getElementById('app');
+const scroll = document.getElementById('scroll');
+const ta = document.getElementById('ta');
+const sendBtn = document.getElementById('send');
+document.getElementById('brandMark').innerHTML = mark(22);
+sendBtn.innerHTML = IC.send(18);
+
+/* statik (görünüm bağımsız) metinleri seçili dile göre uygula */
+function applyStaticI18n() {
+  document.getElementById('anon').innerHTML = IC.lock(12) + esc(t('anon'));
+  document.getElementById('restart').innerHTML = IC.refresh(14) + esc(t('restart'));
+  ta.placeholder = t('placeholder');
+  document.getElementById('tagline').textContent = t('foot');
+  document.getElementById('disclaimer').textContent = t('footNote');
+  document.querySelectorAll('#langsel button').forEach(b =>
+    b.classList.toggle('on', b.dataset.l === lang));
+}
+
+let messages = [];      // {role:'user'|'assistant', content}
+let busy = false;
+
+function setView() {
+  app.dataset.view = (scroll.querySelector('.thread') ? 'chat' : 'welcome');
+}
+
+function renderWelcome() {
+  const items = t('examples').map(q =>
+    `<button class="ex-item" type="button" data-q="${esc(q)}">
+       <span class="s">${IC.spark(15)}</span><span>${esc(q)}</span><span class="arr">${IC.upright(15)}</span>
+     </button>`).join('');
+  const head = t('head').map(l => `<span>${esc(l)}</span>`).join('');
+  const chips = t('chips').map(c => `<span class="chip">${esc(c)}</span>`).join('');
+  scroll.innerHTML =
+    `<div class="welcome">
+      <div class="hero-emblem">${mark(38)}</div>
+      <h1 class="head">${head}</h1>
+      <p class="sub">${esc(t('sub'))}</p>
+      <div class="trust">${chips}</div>
+      <div class="ex">
+        <div class="ex-title">${esc(t('exTitle'))}</div>
+        <div class="ex-list">${items}</div>
+      </div>
+    </div>`;
+  scroll.querySelectorAll('.ex-item').forEach(b =>
+    b.addEventListener('click', () => send(b.dataset.q)));
+  setView();
+}
+
+function ensureThread() {
+  let t = scroll.querySelector('.thread');
+  if (!t) { scroll.innerHTML = '<div class="thread"></div>'; t = scroll.querySelector('.thread'); setView(); }
+  return t;
+}
+
+function clearFresh() { scroll.querySelectorAll('.fresh').forEach(e => e.classList.remove('fresh')); }
+
+function addUser(text) {
+  const t = ensureThread();
+  clearFresh();
+  const div = document.createElement('div');
+  div.className = 'msg user fresh';
+  div.innerHTML = `<div class="bubble">${esc(text)}</div>`;
+  t.appendChild(div);
+  toBottom();
+}
+
+function showTyping() {
+  const t = ensureThread();
+  clearFresh();
+  const div = document.createElement('div');
+  div.className = 'msg bot fresh';
+  div.id = 'typing';
+  div.innerHTML = `<span class="av">${mark(20)}</span><div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+  t.appendChild(div);
+  toBottom();
+}
+function removeTyping() { const e = document.getElementById('typing'); if (e) e.remove(); }
+
+function answerHtml(answer, sources) {
+  const { empathy, body } = splitParagraphs(answer);
+  let html = '';
+  if (empathy) html += `<p class="empathy">${renderBody(empathy)}</p>`;
+  html += body.map(p => `<p class="para">${renderBody(p)}</p>`).join('');
+
+  const cites = (sources || []).map((s, i) => toCite(s, i + 1));
+  if (cites.length) {
+    const allVerified = cites.every(c => c.verified);
+    const head = allVerified ? t('citesVerified')(cites.length) : t('cites')(cites.length);
+    html += `<div class="cites"><div class="cites-h">${IC.check(13, 2.2)}${esc(head)}</div>`;
+    html += cites.map(c => {
+      const badge = c.verified
+        ? `<span class="badge">${IC.check(12, 2.2)}${esc(t('badgeVerified'))}</span>`
+        : `<span class="badge unv">${IC.check(12, 2.2)}${esc(t('badgeAuto'))}</span>`;
+      const linkLabel = c.url.includes('pubmed') ? t('openPubmed')
+        : (c.url.includes('doi.org') ? t('openDoi') : t('openSource'));
+      const link = c.url
+        ? `<span class="cite-link">${esc(linkLabel)} ${IC.upright(13)}</span>` : '';
+      const tag = c.url ? 'a' : 'div';
+      const href = c.url ? ` href="${esc(c.url)}" target="_blank" rel="noreferrer"` : '';
+      return `<${tag} class="cite"${href}>
+          <span class="cite-n">${c.n}</span>
+          <span class="cite-body">${badge}<span class="cite-text">${esc(c.text)}</span>${link}</span>
+        </${tag}>`;
+    }).join('');
+    html += `</div>`;
+  }
+  return html;
+}
+
+function addBot(answer, sources) {
+  const t = ensureThread();
+  clearFresh();
+  const div = document.createElement('div');
+  div.className = 'msg bot fresh';
+  div.innerHTML = `<span class="av">${mark(20)}</span><div class="bubble">${answerHtml(answer, sources)}</div>`;
+  t.appendChild(div);
+  toBottom();
+}
+
+function addError(text) {
+  const t = ensureThread();
+  clearFresh();
+  const div = document.createElement('div');
+  div.className = 'msg bot fresh';
+  div.innerHTML = `<span class="av">${mark(20)}</span><div class="bubble"><p class="para">${esc(text)}</p></div>`;
+  t.appendChild(div);
+  toBottom();
+}
+
+function toBottom() { scroll.scrollTo({ top: scroll.scrollHeight, behavior: 'smooth' }); }
+
+async function send(raw) {
+  const q = (raw == null ? ta.value : raw).trim();
+  if (!q || busy) return;
+  busy = true;
+  ta.value = ''; ta.style.height = 'auto'; updateSend();
+  addUser(q);
+  showTyping();
+
+  const history = messages.slice(-6);
+  messages.push({ role: 'user', content: q });
+
+  try {
+    const res = await fetch(API + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: q, conversation_history: history, lang }),
+    });
+    removeTyping();
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    messages.push({ role: 'assistant', content: data.answer || '' });
+    addBot(data.answer || '', data.sources || []);
+  } catch (e) {
+    removeTyping();
+    addError(t('error'));
+  } finally {
+    busy = false; updateSend();
+  }
+}
+
+function restart() {
+  messages = []; busy = false; ta.value = ''; ta.style.height = 'auto';
+  renderWelcome(); updateSend();
+}
+
+function updateSend() { sendBtn.disabled = !ta.value.trim() || busy; }
+
+/* ---- olaylar ---- */
+ta.addEventListener('input', () => {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 96) + 'px';
+  updateSend();
+});
+ta.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+sendBtn.addEventListener('click', () => send());
+document.getElementById('restart').addEventListener('click', restart);
+document.getElementById('brand').addEventListener('click', restart);  // logo -> başa dön
+
+/* dil değiştir: statik metinleri güncelle, welcome'daysa yeniden çiz */
+document.getElementById('langsel').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-l]');
+  if (!b || b.dataset.l === lang) return;
+  lang = b.dataset.l;
+  applyStaticI18n();
+  if (!scroll.querySelector('.thread')) renderWelcome();
+});
+
+/* ---- başlat ---- */
+applyStaticI18n();
+renderWelcome();
+updateSend();
+</script>
+</body>
+</html>
