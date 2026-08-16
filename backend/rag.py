@@ -241,18 +241,26 @@ def retrieve_guided(query_emb, kategori_id: int, k: int = 15, secondary=None,
                                           include=['documents', 'metadatas', 'distances'])), max_per_source)
 
     have = {c['id'] for c in chunks}
-    for rank in (1, 2):
-        anc = _unpack(col.query(query_embeddings=[query_emb], n_results=2,
-                                where={"$or": [
-                                    {"$and": [{"kategori_id": kategori_id}, {"anchor_rank": rank}]},
-                                    {"$and": [{"sec_kategori_id": kategori_id}, {"sec_anchor_rank": rank}]},
-                                ]},
-                                include=['documents', 'metadatas', 'distances']))
-        if anc:
-            ids = {a['id'] for a in anc}
-            chunks = anc + [c for c in chunks if c['id'] not in ids]
-            have |= ids
-            break
+    anc_meta = col.get(where={"$or": [
+        {"$and": [{"kategori_id": kategori_id}, {"is_anchor": True}]},
+        {"sec_kategori_id": kategori_id},
+    ]}, include=['metadatas'])
+    anc_sids = []
+    for m in (anc_meta.get('metadatas') or []):
+        s = m.get('source_id')
+        if s and s not in anc_sids:
+            anc_sids.append(s)
+    anchors = []
+    for s in anc_sids:
+        r = _unpack(col.query(query_embeddings=[query_emb], n_results=1, where={"source_id": s},
+                              include=['documents', 'metadatas', 'distances']))
+        if r:
+            anchors.append(r[0])
+    anchors.sort(key=lambda c: (c.get('distance') is None, c.get('distance')))
+    if anchors:
+        ids = {a['id'] for a in anchors}
+        chunks = anchors + [c for c in chunks if c['id'] not in ids]
+        have |= ids
 
     if len(chunks) < k:
         for c in _unpack(col.query(query_embeddings=[query_emb], n_results=min(k * 3, col.count()),
