@@ -4,6 +4,8 @@
 
 **Live at [vaxask.org](https://vaxask.org)** — production deployment.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21969521.svg)](https://doi.org/10.5281/zenodo.21969521)
+
 VaxAsk answers vaccine questions by grounding every response in a curated scientific knowledge base **and** adapting *how* it responds to the person asking — their concern, their attitude, and their emotional state. Unlike a plain chatbot or a generic RAG pipeline, VaxAsk first reads the question, then tailors both the evidence it retrieves and the communication strategy it uses.
 
 > ⚠️ VaxAsk is a research prototype and an informational tool. It does **not** provide medical advice and does not replace a clinician.
@@ -121,6 +123,14 @@ The LLM interface is OpenAI-compatible, so any compatible provider/model can be 
 ## Disclaimer
 
 VaxAsk is provided for informational and research purposes only. It is not a medical device, does not provide personalized medical advice, and is not a substitute for consultation with a qualified health professional. Answers are only as reliable as the knowledge base you build.
+
+## Citation
+
+If you use VaxAsk, please cite the archived release:
+
+> VaxAsk (2026). *VaxAsk: A classification-guided, communication-adapted RAG system for vaccine-hesitancy counseling* (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.21969521
+
+DOI: [10.5281/zenodo.21969521](https://doi.org/10.5281/zenodo.21969521) — this is the concept DOI, which always resolves to the latest version. Machine-readable metadata is in [`CITATION.cff`](CITATION.cff).
 
 ## License
 

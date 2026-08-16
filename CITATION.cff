@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use VaxAsk, please cite it using the metadata below."
+title: "VaxAsk: A classification-guided, communication-adapted RAG system for vaccine-hesitancy counseling"
+abstract: >-
+  VaxAsk answers vaccine questions by grounding every response in a curated
+  scientific knowledge base and adapting how it responds to the person asking —
+  their concern category, attitude, and emotional state. Live at https://vaxask.org.
+authors:
+  - name: "VaxAsk"
+version: "1.0.0"
+date-released: "2026-08-16"
+doi: "10.5281/zenodo.21969521"
+url: "https://vaxask.org"
+repository-code: "https://github.com/vaxask/vaxask"
+license: MIT
+keywords:
+  - vaccine hesitancy
+  - retrieval-augmented generation
+  - health communication
+  - motivational interviewing
+  - large language models
+  - patient counseling
