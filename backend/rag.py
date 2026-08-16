@@ -236,14 +236,17 @@ def retrieve_guided(query_emb, kategori_id: int, k: int = 15, secondary=None,
         return [], False
 
     cats = [kategori_id] + [x for x in (secondary or []) if x and x != kategori_id]
-    where = {"kategori_id": {"$in": cats}} if len(cats) > 1 else {"kategori_id": kategori_id}
+    where = {"$or": [{"kategori_id": {"$in": cats}}, {"sec_kategori_id": {"$in": cats}}]}
     chunks = _diversity(_unpack(col.query(query_embeddings=[query_emb], n_results=min(k * 3, col.count()), where=where,
                                           include=['documents', 'metadatas', 'distances'])), max_per_source)
 
     have = {c['id'] for c in chunks}
     for rank in (1, 2):
         anc = _unpack(col.query(query_embeddings=[query_emb], n_results=2,
-                                where={"$and": [{"kategori_id": kategori_id}, {"anchor_rank": rank}]},
+                                where={"$or": [
+                                    {"$and": [{"kategori_id": kategori_id}, {"anchor_rank": rank}]},
+                                    {"$and": [{"sec_kategori_id": kategori_id}, {"sec_anchor_rank": rank}]},
+                                ]},
                                 include=['documents', 'metadatas', 'distances']))
         if anc:
             ids = {a['id'] for a in anc}
