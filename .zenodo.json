@@ -1,0 +1,17 @@
+{
+  "title": "VaxAsk: A classification-guided, communication-adapted RAG system for vaccine-hesitancy counseling",
+  "description": "VaxAsk answers vaccine questions by grounding every response in a curated scientific knowledge base and adapting how it responds to the person asking — their concern category, attitude, and emotional state. The pipeline classifies each question, prioritizes category and anchor evidence during retrieval, injects a communication policy, and appends a safety gate on clinical red flags. Live at https://vaxask.org.",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    { "name": "VaxAsk" }
+  ],
+  "keywords": [
+    "vaccine hesitancy",
+    "retrieval-augmented generation",
+    "health communication",
+    "motivational interviewing",
+    "large language models",
+    "patient counseling"
+  ]
+}
