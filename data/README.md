@@ -8,5 +8,5 @@ Supplementary data for the VaxAsk study.
   responsibility); this file lists exactly which sources the corpus was built from.
 
 - **`evaluation_questions.xlsx`** — the 180 evaluation questions (12 concern categories ×
-  15), with their design metadata: attitude, target/persona, red-flag label, and the
-  mapping to the WHO SAGE 5C determinants and the WHO BeSD framework.
+  15), each given in the original Turkish (`Soru (TR)`) and in a careful English
+  translation (`Question (EN)`) that preserves the patient/parent voice.
