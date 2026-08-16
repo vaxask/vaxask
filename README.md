@@ -2,6 +2,8 @@
 
 **A classification-guided, communication-adapted retrieval-augmented generation (RAG) system for vaccine-hesitancy counseling.**
 
+**Live at [vaxask.org](https://vaxask.org)** — production deployment.
+
 VaxAsk answers vaccine questions by grounding every response in a curated scientific knowledge base **and** adapting *how* it responds to the person asking — their concern, their attitude, and their emotional state. Unlike a plain chatbot or a generic RAG pipeline, VaxAsk first reads the question, then tailors both the evidence it retrieves and the communication strategy it uses.
 
 > ⚠️ VaxAsk is a research prototype and an informational tool. It does **not** provide medical advice and does not replace a clinician.
