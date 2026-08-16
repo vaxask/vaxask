@@ -65,6 +65,8 @@ frontend/
 
 The **knowledge base itself (embeddings, source PDFs) is not distributed** — you build it from your own sources via the admin panel (copyright/licensing of source documents is your responsibility).
 
+**Study data.** The [`data/`](data/) folder contains the 129 knowledge-base source references (`knowledge_base_references.xlsx`) and the 180 evaluation questions with their design metadata (`evaluation_questions.xlsx`).
+
 ---
 
 ## Quick start
