@@ -21,10 +21,13 @@ Question
 1. Classification  ──►  concern category · attitude · dominant emotion ·
    (LLM classifier)     clinical red-flag · audience (self / child / other)
    │
-   ├──────────────► 2. Evidence path
-   │                   • retrieval restricted to the question's concern category
-   │                   • the category's designated "anchor" source is prioritized
-   │                   • falls back to unrestricted search when no category applies
+   ├──────────────► 2. Evidence path (whole corpus, prioritized — not restricted)
+   │                   • the category's designated "anchor" source is guaranteed
+   │                     the top slots
+   │                   • sources from the question's concern category are prioritized
+   │                     next
+   │                   • the rest of the corpus fills any remaining slots, so answers
+   │                     never depend on a category being well-populated
    │
    └──────────────► 3. Communication path
                        • a policy (category × attitude × emotion) is injected into

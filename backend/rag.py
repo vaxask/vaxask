@@ -235,35 +235,31 @@ def retrieve_guided(query_emb, kategori_id: int, k: int = 15, secondary=None,
     if col.count() == 0:
         return [], False
 
-    cats = [kategori_id] + list(secondary or [])
+    cats = [kategori_id] + [x for x in (secondary or []) if x and x != kategori_id]
     where = {"kategori_id": {"$in": cats}} if len(cats) > 1 else {"kategori_id": kategori_id}
-    res = col.query(query_embeddings=[query_emb], n_results=k, where=where,
-                    include=['documents', 'metadatas', 'distances'])
-    chunks = _diversity(_unpack(res), max_per_source)
+    chunks = _diversity(_unpack(col.query(query_embeddings=[query_emb], n_results=min(k * 3, col.count()), where=where,
+                                          include=['documents', 'metadatas', 'distances'])), max_per_source)
 
     have = {c['id'] for c in chunks}
     for rank in (1, 2):
-        anc = col.query(query_embeddings=[query_emb], n_results=2,
-                        where={"$and": [{"kategori_id": kategori_id}, {"anchor_rank": rank}]},
-                        include=['documents', 'metadatas', 'distances'])
-        added = False
-        for a in _unpack(anc):
-            if a['id'] not in have:
-                chunks.insert(0, a)
-                have.add(a['id'])
-                added = True
-        if added:
+        anc = _unpack(col.query(query_embeddings=[query_emb], n_results=2,
+                                where={"$and": [{"kategori_id": kategori_id}, {"anchor_rank": rank}]},
+                                include=['documents', 'metadatas', 'distances']))
+        if anc:
+            ids = {a['id'] for a in anc}
+            chunks = anc + [c for c in chunks if c['id'] not in ids]
+            have |= ids
             break
 
-    chunks = _diversity(chunks, max_per_source)[:k]
-
-    if len(chunks) < max(4, k // 3):
-        for c in retrieve_free(query_emb, k, max_per_source):
+    if len(chunks) < k:
+        for c in _unpack(col.query(query_embeddings=[query_emb], n_results=min(k * 3, col.count()),
+                                   include=['documents', 'metadatas', 'distances'])):
             if c['id'] not in have:
-                chunks.append(c); have.add(c['id'])
-        chunks = chunks[:k]
+                chunks.append(c)
+                have.add(c['id'])
+        chunks = _diversity(chunks, max_per_source)
 
-    return chunks, True
+    return chunks[:k], True
 
 def retrieve_relevant_chunks(query: str, n_results: int = 15, max_per_source: int = 2) -> list[dict]:
     return retrieve_free(embed_query(query), n_results, max_per_source)
